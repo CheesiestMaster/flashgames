@@ -1,2 +1,2 @@
 # Ignore all flash files
-static/flash/*
+static/flash/*.swf

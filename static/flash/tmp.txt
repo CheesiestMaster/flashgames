@@ -1,0 +1,1 @@
+This file is ignored by the app. Put .swf files in this directory for them to be loaded

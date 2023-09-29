@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>{{ gameName }}</title>
+        <script src="/ruffle/ruffle.js"></script>
+    </head>
+    <body>
+        <center>
+        <h1>{{ gameName }}</h1>
+        <!-- flash player-->
+        <object type="application/x-shockwave-flash" data="{{ swf_path }}" width="800" height="600" style="border: 1px solid #000;">
+            <!-- Alternative content if Flash is not supported -->
+            <p>Flash Player is required to play this game.</p>
+        </object><br>
+        <a href="/">Return to Menu</a>
+        </center>
+    </body>
+</html>

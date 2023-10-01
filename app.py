@@ -10,13 +10,14 @@ app = Flask(__name__)
 
 files = []
 
+app_directory = os.path.dirname(os.path.abspath(__file__))
+
 @app.route('/update')
 def update():
-    global files
+    global files, app_directory
+    
     if init:
         files = []
-    # Get the absolute path to the application directory
-    app_directory = os.path.dirname(os.path.abspath(__file__))
     # Construct the absolute path to the 'static/flash' directory
     flash_directory = os.path.join(app_directory, 'static', 'flash')
     # walk /flash for all .swf files, store basename in files array
@@ -25,6 +26,9 @@ def update():
             if filename.endswith('.swf'):
                 files.append(os.path.splitext(filename)[0])
     if init:
+        if conf.access_log:
+            with open(conf.access_log, 'a') as f:
+                f.write(f"{request.remote_addr} requested update\n")
         return redirect(url_for('index'))
 
 update()
@@ -57,6 +61,9 @@ def index():
     gamesList.sort()
     gamesList.append(f"<a href='/random'>Random</a>")
     gamesList.append(f"<a href='/request'>Request</a>")
+    if conf.access_log:
+        with open(conf.access_log, 'a') as f:
+            f.write(f"{request.remote_addr} requested index\n")
     return render_template('index.html', gameslist = "<br>".join(gamesList))
 
 @app.route('/game/<game>')
@@ -64,30 +71,47 @@ def game(game):
     if not prevent_traversal(game, True):
         return redirect(url_for('index'))
     if game in files:
+        if conf.access_log:
+            with open(conf.access_log, 'a') as f:
+                f.write(f"{request.remote_addr} requested {game}\n")
         return render_template('games.html', gameName = beautify(game), swf_path = f'/flash/{game}.swf')
     else:
+        if conf.access_log:
+            with open(conf.access_log, 'a') as f:
+                f.write(f"{request.remote_addr} requested {game}, game does not exist\n")
         return redirect(url_for('index'))
 
 @app.route('/flash/<path:game>')
 def flash(game):
     if not prevent_traversal(game, False):
         return redirect(url_for('index'))
-    print(game)
     if not game.endswith('.swf'):
         #404
+        if conf.access_log:
+            with open(conf.access_log, 'a') as f:
+                f.write(f"{request.remote_addr} requested {game}, which is not an swf\n")
         return '404'
     # return swf file
+    if conf.access_log:
+        with open(conf.access_log, 'a') as f:
+            f.write(f"{request.remote_addr} requested flash for {game}\n")
     return app.send_static_file(f'flash/{game}')
 
 @app.route('/ruffle/<path:text>')
 def ruffle(text):
     if not prevent_traversal(text, False):
         return redirect(url_for('index'))
+    if conf.access_log:
+        with open(conf.access_log, 'a') as f:
+            f.write(f"{request.remote_addr} requested ruffle for {text}\n")
     return app.send_static_file(f'ruffle/{text}')
 
 @app.route('/random')
 def random():
     import random
+    if conf.access_log:
+        with open(conf.access_log, 'a') as f:
+            f.write(f"{request.remote_addr} requested a random game\n")
     return redirect(url_for('game', game=random.choice(files)))
 
 @app.route('/request', methods=['GET', 'POST'])
@@ -96,12 +120,26 @@ def newgame():
     # if GET return template request.html
     if request.method == 'POST':
         print(request.form)
-        with open('requests.txt', 'a') as f:
+        with open(f'{app_directory}/{conf.request_log}', 'a') as f:
             f.write(f"{request.form['gameName']} at {request.form['source']}\n")
             print("Request logged")
+        if conf.access_log:
+            with open(conf.access_log, 'a') as f:
+                f.write(f"{request.remote_addr} submitted a game request\n")
         return redirect(url_for('index'))
     else:
+        if conf.access_log:
+            with open(conf.access_log, 'a') as f:
+                f.write(f"{request.remote_addr} requested request page\n")
         return render_template('request.html')
+    
+@app.route('/request/list')
+def listrequests():
+    if conf.access_log:
+        with open(conf.access_log, 'a') as f:
+            f.write(f"{request.remote_addr} requested the request list\n")
+    with open(f'{app_directory}/requests.txt', 'r') as f:
+        return f.read()
 
 #enable redirect from the update function
 init = True

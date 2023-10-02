@@ -1,3 +1,6 @@
 # Ignore all flash files
 static/flash/*.swf
 __pycache__/
+gunicorn_config.py
+conf.py
+access.log

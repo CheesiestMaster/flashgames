@@ -11,5 +11,5 @@
 ### Usage
 1. Add at least one .swf file to static/flash
 2. Start the server
-3. Open url from console in browser
+3. Open url from console in browser (If running through flask)
 4. Click on the game you want to play

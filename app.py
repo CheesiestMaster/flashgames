@@ -179,5 +179,5 @@ init = True
 
 if __name__ == '__main__':
     # print url to index page
-    print(f"URL: http://{conf.host}:{conf.port}")
-    app.run(host=conf.host, port=conf.port, debug=conf.debug)
+    print(f"URL: http://{conf.flask['host']}:{conf.flask['port']}")
+    app.run(conf.flask)

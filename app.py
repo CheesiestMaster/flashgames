@@ -53,6 +53,13 @@ def prevent_traversal(path, isStrict):
 def beautify(string):
     return string.replace('-', ' ').replace('_', ' ').title()
 
+def log_request(request, message):
+    if conf.access_log:
+        with open(conf.access_log, 'a') as f:
+            ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+            f.write(f"{ip} {message}\n")
+
+
 @app.route('/')
 def index():
     gamesList = []
@@ -64,12 +71,7 @@ def index():
     gamesList.sort()
     gamesList.append(f"<a href='/random'>Random</a>")
     gamesList.append(f"<a href='/request'>Request</a>")
-    if conf.access_log:
-        with open(conf.access_log, 'a') as f:
-            if request.headers.get('X-Forwarded-For'):
-                f.write(f"{request.headers.get('X-Forwarded-For')} requested index\n")
-            else:
-                f.write(f"{request.remote_addr} requested index\n")
+    log_request(request, "requested index")
     return render_template('index.html', gameslist = "<br>".join(gamesList))
 
 @app.route('/game/<game>')
@@ -77,20 +79,10 @@ def game(game):
     if not prevent_traversal(game, True):
         return redirect(url_for('index'))
     if game in files:
-        if conf.access_log:
-            with open(conf.access_log, 'a') as f:
-                if request.headers.get('X-Forwarded-For'):
-                    f.write(f"{request.headers.get('X-Forwarded-For')} requested {game}\n")
-                else:
-                    f.write(f"{request.remote_addr} requested {game}\n")
+        log_request(request, f"requested {game}")
         return render_template('games.html', gameName = beautify(game), swf_path = f'/flash/{game}.swf')
     else:
-        if conf.access_log:
-            with open(conf.access_log, 'a') as f:
-                if request.headers.get('X-Forwarded-For'):
-                    f.write(f"{request.headers.get('X-Forwarded-For')} requested {game}, game does not exist\n")
-                else:
-                    f.write(f"{request.remote_addr} requested {game}, game does not exist\n")
+        log_request(request, f"requested {game}, game does not exist")
         return redirect(url_for('index'))
 
 @app.route('/flash/<path:game>')
@@ -99,43 +91,23 @@ def flash(game):
         return redirect(url_for('index'))
     if not game.endswith('.swf'):
         #404
-        if conf.access_log:
-            with open(conf.access_log, 'a') as f:
-                if request.headers.get('X-Forwarded-For'):
-                    f.write(f"{request.headers.get('X-Forwarded-For')} requested {game}, which is not an swf\n")
-                else:
-                    f.write(f"{request.remote_addr} requested {game}, which is not an swf\n")
+        log_request(request, f"requested {game}, which is not an swf")
         return '404'
     # return swf file
-    if conf.access_log:
-        with open(conf.access_log, 'a') as f:
-            if request.headers.get('X-Forwarded-For'):
-                f.write(f"{request.headers.get('X-Forwarded-For')} requested flash for {game}\n")
-            else:
-                f.write(f"{request.remote_addr} requested flash for {game}\n")
+    log_request(request, f"requested flash for {game}")
     return app.send_static_file(f'flash/{game}')
 
 @app.route('/ruffle/<path:text>')
 def ruffle(text):
     if not prevent_traversal(text, False):
         return redirect(url_for('index'))
-    if conf.access_log:
-        with open(conf.access_log, 'a') as f:
-            if request.headers.get('X-Forwarded-For'):
-                f.write(f"{request.headers.get('X-Forwarded-For')} requested ruffle for {text}\n")
-            else:
-                f.write(f"{request.remote_addr} requested ruffle for {text}\n")
+    log_request(request, f"requested ruffle for {text}")
     return app.send_static_file(f'ruffle/{text}')
 
 @app.route('/random')
 def random():
     import random
-    if conf.access_log:
-        with open(conf.access_log, 'a') as f:
-            if request.headers.get('X-Forwarded-For'):
-                f.write(f"{request.headers.get('X-Forwarded-For')} requested a random game\n")
-            else:
-                f.write(f"{request.remote_addr} requested a random game\n")
+    log_request(request, "requested a random game")
     return redirect(url_for('game', game=random.choice(files)))
 
 @app.route('/request', methods=['GET', 'POST'])
@@ -147,30 +119,15 @@ def newgame():
         with open(f'{app_directory}/{conf.request_log}', 'a') as f:
             f.write(f"{request.form['gameName']} at {request.form['source']}\n")
             print("Request logged")
-        if conf.access_log:
-            with open(conf.access_log, 'a') as f:
-                if request.headers.get('X-Forwarded-For'):
-                    f.write(f"{request.headers.get('X-Forwarded-For')} submitted a game request\n")
-                else:
-                    f.write(f"{request.remote_addr} submitted a game request\n")
+        log_request(request, "submitted a game request")
         return redirect(url_for('index'))
     else:
-        if conf.access_log:
-            with open(conf.access_log, 'a') as f:
-                if request.headers.get('X-Forwarded-For'):
-                    f.write(f"{request.headers.get('X-Forwarded-For')} requested request page\n")
-                else:
-                    f.write(f"{request.remote_addr} requested request page\n")
+        log_request(request, "requested request page")
         return render_template('request.html')
     
 @app.route('/request/list')
 def listrequests():
-    if conf.access_log:
-        with open(conf.access_log, 'a') as f:
-            if request.headers.get('X-Forwarded-For'):
-                f.write(f"{request.headers.get('X-Forwarded-For')} requested the request list\n")
-            else:
-                f.write(f"{request.remote_addr} requested the request list\n")
+    log_request(request, "requested the request list")
     with open(f'{app_directory}/requests.txt', 'r') as f:
         return f.read()
 
